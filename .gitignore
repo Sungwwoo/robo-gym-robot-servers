@@ -3,9 +3,11 @@
 *.py~
 *.ipynb_checkpoints
 
+*__pycache__
+*.egg-info
+
 
 # Setuptools
 /build
 /dist
 /*.egg-info
-.vscode/
