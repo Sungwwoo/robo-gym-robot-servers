@@ -1,0 +1,40 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>husky_ur3_robot_server</name>
+  <version>0.0.0</version>
+  <description>The husky_ur3_robot_server package</description>
+
+  <!-- One maintainer tag required, multiple allowed, one person per tag -->
+  <!-- Example:  -->
+  <!-- <maintainer email="jane.doe@example.com">Jane Doe</maintainer> -->
+  <maintainer email="kmh8667@khu.ac.kr">kmh</maintainer>
+
+
+  <!-- One license tag required, multiple allowed, one license per tag -->
+  <!-- Commonly used license strings: -->
+  <!--   BSD, MIT, Boost Software License, GPLv2, GPLv3, LGPLv2.1, LGPLv3 -->
+  <license>TODO</license>
+
+
+  <author email="kmh8667@khu.ac.kr"></author>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <build_depend>rospy</build_depend>
+  <build_depend>std_msgs</build_depend>
+
+  <build_export_depend>rospy</build_export_depend>
+  <build_export_depend>std_msgs</build_export_depend>
+  <exec_depend>rospy</exec_depend>
+  <exec_depend>std_msgs</exec_depend>
+  <exec_depend>joint_state_publisher</exec_depend>
+  <exec_depend>robot_state_publisher</exec_depend>
+  <exec_depend>rviz</exec_depend>
+  <exec_depend>xacro</exec_depend>
+  <exec_depend>tf</exec_depend>
+  <exec_depend>husky_ur3_gazebo</exec_depend>
+  <exec_depend>tf_conversions</exec_depend>
+
+  <export>
+  </export>
+</package>

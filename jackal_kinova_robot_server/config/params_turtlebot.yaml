@@ -1,0 +1,41 @@
+# Potential Field Method Gains
+attractive_potential_gain: 10.0
+repulsive_potential_gain: 30.0
+
+# Lidar Data Informations
+potential_field_distance: 10
+lidar_distance_max: 10         # meters
+lidar_distance_min: 0.12           # meters
+lidar_angle_max: 6.28319    # radian
+lidar_angle_min: 0.0  # radian
+lidar_data_length: 360
+lidar_link_name: base_scan
+
+# Lidar Clustering Parameters
+n_distance_segment: 4
+clustering_threshold: 10          # meters
+merging_threshold: 0.4            # meters
+
+# Robot Dynamics Parameters
+# Linear
+acc_x_lim: 2.5
+vel_x_max: 0.22
+vel_x_min: 0.1
+linear_kp: 5.0
+
+# Angular
+acc_theta_lim: 1.6
+vel_theta_max: 2.75
+vel_theta_min: 0.2
+
+
+angular_kp: 2
+angular_kd: 3.0
+
+# Goal Parameters
+xy_goal_tolerance: 0.5
+yaw_goal_tolerance: 0.1
+in_place_vel_theta: 0.2
+
+# Publish cmd_vel if False
+check_potential: False

@@ -1,0 +1,77 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="gui" default="true" />
+  <arg name="gazebo_gui" default="true" />
+  <arg name="world_path" default="$(find jackal_kinova_gazebo)/worlds" />
+  <arg name="world_name" default="obst_4_6by9.world" />
+  <arg name="world" value="$(arg world_path)/$(arg world_name)" />
+  <arg name="server_port" default="50051" />
+  <arg name="x" default="0" />
+  <arg name="y" default="0" />
+  <arg name="z" default="0" />
+  <arg name="yaw" default="0" />
+  <arg name="joystick" default="true" />
+  <arg name="debug" default="false" />
+  <arg unless="$(arg debug)" name="launch_prefix" value="" />
+  <arg if="$(arg debug)" name="launch_prefix" value="gdb --ex run --args" />
+  <arg name="rviz_config" default="" />
+  <arg if="$(eval rviz_config=='')" name="command_args" value="" />
+  <arg unless="$(eval rviz_config=='')" name="command_args" value="-d $(arg rviz_config)" />
+  <arg name="first" default="JK_01" />
+  <arg name="second" default="JK_02" />
+
+  <!-- Launch Gazebo -->
+  <include
+    file="$(find jackal_kinova_gazebo)/launch/rl_empty_world.launch">
+    <arg name="world" value="$(arg world)" />
+    <arg name="gui" value="$(arg gazebo_gui)" />
+    <arg name="paused" value="false" />
+    <arg name="debug" value="$(arg debug)" />
+  </include>
+
+  <!-- spawn robot and bring up controllers etc. -->
+  <group ns="$(arg first)">
+    <include file="$(find jackal_kinova_gazebo)/launch/rl_spawn_jackal.launch">
+      <arg name="x" value="$(arg x)" />
+      <arg name="y" value="$(arg y)" />
+      <arg name="z" value="$(arg z)" />
+      <arg name="yaw" value="$(arg yaw)" />
+      <arg name="joystick" value="$(arg joystick)" />
+      <arg name="ns" value="$(arg first)" />
+    </include>
+
+    <include file="$(find jackal_kinova_gazebo)/launch/fake_localization.launch">
+      <arg name="ns" value="$(arg first)" />
+    </include>
+
+    <!-- Launch robot_pose publisher -->
+    <node name="robot_pose_publisher" pkg="jackal_kinova_robot_server"
+      type="robot_pose_publisher.py" respawn="false" output="screen">
+    </node>
+
+    <!-- Launch Command Handler -->
+    <node name="cmd_vel_command_handler" pkg="jackal_kinova_robot_server"
+      type="cmd_vel_command_handler.py" respawn="false" output="screen">
+      <param name="action_cycle_rate" value="10"></param>
+    </node>
+
+    <!-- Launch Contact Handler -->
+    <node name="contact_handler" pkg="jackal_kinova_robot_server"
+      type="contact_handler.py" respawn="false" output="screen">
+    </node>
+
+    <!--Launch
+    gRPC server -->
+    <node name="robot_server" pkg="jackal_kinova_robot_server" type="robot_server.py"
+      respawn="false" output="screen">
+      <param name="server_port" value="$(arg server_port)"></param>
+      <param name="real_robot" value="false"></param>
+    </node>
+
+
+    <include file="$(find jackal_kinova_moveit_config)/launch/moveit_rviz.launch">
+      <arg name="rviz_config" value="$(find jackal_kinova_moveit_config)/launch/rl_rviz.rviz" />
+    </include>
+
+  </group>
+</launch>
