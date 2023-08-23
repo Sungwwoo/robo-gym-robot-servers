@@ -21,5 +21,6 @@ catkin_python_setup()
 catkin_install_python(PROGRAMS scripts/cmd_vel_command_handler.py
   scripts/robot_pose_publisher.py
   scripts/robot_server.py
+  scripts/robot_server_no_obstacle.py
   scripts/contact_handler.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})

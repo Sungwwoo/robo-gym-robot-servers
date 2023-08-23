@@ -52,7 +52,6 @@ RS_ROBOT_TWIST = RS_ROBOT_POSE + 3
 RS_SCAN = RS_ROBOT_TWIST + 2
 RS_COLLISION = RS_SCAN + 811  # Raser Scan Length
 RS_ROSTIME = RS_COLLISION + 1
-RS_OBSTACLES = RS_ROSTIME + 1
 
 
 class RosBridge:
@@ -120,7 +119,6 @@ class RosBridge:
         self.scan = [0.0] * self.laser_len
         self.collision = False
         self.rostime = [0.0]
-        self.obstacles = [0.0 for i in range(0, 3 * NUM_OBSTACLES)]
 
         self.state_length = len(
             self.target
@@ -128,8 +126,7 @@ class RosBridge:
             + self.base_twist
             + self.scan
             + [self.collision]
-            + self.rostime
-            + self.obstacles,
+            + self.rostime,
         )
         # Reference frame for Path
         self.path_frame = "map"
@@ -183,9 +180,6 @@ class RosBridge:
         state[RS_SCAN : RS_SCAN + self.laser_len] = copy.deepcopy(self.scan)
         state[RS_COLLISION] = [copy.deepcopy(self.collision)]
         state[RS_ROSTIME] = [rospy.Time.now().to_sec()]
-        state[RS_OBSTACLES : RS_OBSTACLES + 3 * NUM_OBSTACLES] = [
-            0.0 for i in range(0, 3 * NUM_OBSTACLES)
-        ]
 
         target = copy.deepcopy(self.target)
         base_pose = copy.deepcopy(self.base_pose)
@@ -193,7 +187,6 @@ class RosBridge:
         base_scan = copy.deepcopy(self.scan)
         in_collision = [copy.deepcopy(self.collision)]
         rostime = [rospy.Time.now().to_sec()]
-        obstacles = [0.0 for i in range(0, 3 * NUM_OBSTACLES)]
 
         # if base_twist[0] > 0 and base_twist[0] > self.max_lin_vel:
         #     base_twist[0] = self.max_lin_vel
@@ -216,7 +209,6 @@ class RosBridge:
         msg.state.extend(base_scan)
         msg.state.extend(in_collision)
         msg.state.extend(rostime)
-        msg.state.extend(obstacles)
         msg.success = 1
 
         return msg
@@ -250,17 +242,6 @@ class RosBridge:
             # Set Gazebo Target Model state
             # self.set_model_state("Stop_sign", copy.deepcopy(state[0:3]))
             # Set obstacles poses
-            rospy.loginfo("Setting obstacle location")
-            for i in range(0, NUM_OBSTACLES):
-                self.set_model_state(
-                    "unit_cylinder_" + str(i),
-                    copy.deepcopy(
-                        state[RS_OBSTACLES + 3 * i : RS_OBSTACLES + 3 * (i + 1)]
-                    ),
-                )
-            self.publish_obstacle_markers(
-                copy.deepcopy(state[RS_OBSTACLES : RS_OBSTACLES + 3 * NUM_OBSTACLES])
-            )
 
         rospy.loginfo("obstacle location set")
 
@@ -270,37 +251,6 @@ class RosBridge:
         # Set reset Event
         self.reset.set()
         return 1
-
-    def publish_obstacle_markers(self, obstacles):
-        self.pub_obstacle_marker.publish(self.delete_marker)
-        obstacle_markers = MarkerArray()
-        for i in range(0, len(obstacles) // 3):
-            marker = Marker()
-            marker.header.frame_id = "map"
-            # marker.header.stamp = rospy.Time.now()
-            marker.ns = "obstacles"
-            marker.id = i
-            marker.type = Marker.CYLINDER
-            marker.action = Marker.ADD
-            marker.scale.x = 0.8
-            marker.scale.y = 0.8
-            marker.scale.z = 0.1
-            marker.pose.position.x = obstacles[3 * i]
-            marker.pose.position.y = obstacles[3 * i + 1]
-            marker.pose.position.z = 0.0
-            marker.lifetime = rospy.Duration(0)
-            (
-                marker.pose.orientation.x,
-                marker.pose.orientation.y,
-                marker.pose.orientation.z,
-                marker.pose.orientation.w,
-            ) = (0, 0, 0, 1)
-            marker.color.r, marker.color.g, marker.color.b = 0.5, 0.5, 0.5
-            marker.color.a = 0.5
-            obstacle_markers.markers.append(marker)
-        self.pub_obstacle_marker.publish(obstacle_markers)
-
-        return
 
     def publish_env_cmd_vel(self, lin_vel, ang_vel):
         if not self.safe_to_move_front:
