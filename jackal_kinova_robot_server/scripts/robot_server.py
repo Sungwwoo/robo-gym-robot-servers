@@ -137,6 +137,8 @@ class RosBridge:
         self.obstacles = [0.0 for i in range(0, 3 * NUM_OBSTACLES)]
         self.rostime = [0.0]
 
+        self.current_obstacles = [0.0 for i in range(0, 3 * NUM_OBSTACLES)]
+
         self.state_length = len(
             self.target + self.base_pose + self.base_twist + self.scan + [self.collision] + self.obstacles + self.rostime,
         )
@@ -182,7 +184,7 @@ class RosBridge:
         state[RS_ROBOT_TWIST : RS_ROBOT_TWIST + 2] = copy.deepcopy(self.base_twist)
         state[RS_SCAN : RS_SCAN + self.laser_len] = copy.deepcopy(self.scan)
         state[RS_COLLISION] = [copy.deepcopy(self.collision)]
-        state[RS_OBSTACLES : RS_OBSTACLES + 3 * NUM_OBSTACLES] = [0.0 for i in range(0, 3 * NUM_OBSTACLES)]
+        state[RS_OBSTACLES : RS_OBSTACLES + 3 * NUM_OBSTACLES] = self.current_obstacles
         state[RS_ROSTIME] = [rospy.Time.now().to_sec()]
 
         target = copy.deepcopy(self.target)
@@ -190,7 +192,7 @@ class RosBridge:
         base_twist = copy.deepcopy(self.base_twist)
         base_scan = copy.deepcopy(self.scan)
         in_collision = [copy.deepcopy(self.collision)]
-        obstacles = [0.0 for i in range(0, 3 * NUM_OBSTACLES)]
+        obstacles = self.current_obstacles
         rostime = [rospy.Time.now().to_sec()]
 
         # if base_twist[0] > 0 and base_twist[0] > self.max_lin_vel:
@@ -246,6 +248,7 @@ class RosBridge:
             # self.set_model_state("Stop_sign", copy.deepcopy(state[0:3]))
             # Set obstacles poses
             rospy.loginfo("Setting obstacle location")
+            self.current_obstacles = state[RS_OBSTACLES : RS_OBSTACLES + 3 * NUM_OBSTACLES]
             for i in range(0, NUM_OBSTACLES):
                 self.set_model_state("unit_cylinder_" + str(i), copy.deepcopy(state[RS_OBSTACLES + 3 * i : RS_OBSTACLES + 3 * (i + 1)]))
             self.publish_obstacle_markers(copy.deepcopy(state[RS_OBSTACLES : RS_OBSTACLES + 3 * NUM_OBSTACLES]))
