@@ -24,6 +24,14 @@ from moveit_msgs.msg import DisplayTrajectory
 from moveit_commander import RobotCommander, PlanningSceneInterface, MoveGroupCommander, roscpp_initialize
 
 
+RS_TARGET = 0
+RS_ROBOT_POSE = RS_TARGET + 3
+RS_ROBOT_TWIST = RS_ROBOT_POSE + 3
+RS_SCAN = RS_ROBOT_TWIST + 2
+RS_COLLISION = RS_SCAN + 609
+RS_OBSTACLES = RS_COLLISION + 1
+
+
 class RobotServerServicer(robot_server_pb2_grpc.RobotServerServicer):
     def __init__(self, real_robot):
         self.rosbridge = RosBridge(real_robot=real_robot)
@@ -195,14 +203,14 @@ class RosBridge:
 
         if not self.real_robot:
             # Set Gazebo Robot Model state
-            self.set_model_state("husky", copy.deepcopy(state[3:6]))
+            self.set_model_state("husky", copy.deepcopy(state[RS_ROBOT_POSE : RS_ROBOT_POSE + 3]))
             # Set Gazebo Target Model state
-            self.set_model_state("target", copy.deepcopy(state[0:3]))
+            self.set_model_state("target", copy.deepcopy(state[RS_TARGET : RS_TARGET + 3]))
             # Set obstacles poses
-            if len(state) > 617:
-                self.set_model_state("obstacle_0", copy.deepcopy(state[618:621]))
-                self.set_model_state("obstacle_1", copy.deepcopy(state[621:624]))
-                self.set_model_state("obstacle_2", copy.deepcopy(state[624:627]))
+            if len(state) > RS_SCAN + 609:
+                self.set_model_state("obstacle_0", copy.deepcopy(state[RS_OBSTACLES : RS_OBSTACLES + 3]))
+                self.set_model_state("obstacle_1", copy.deepcopy(state[RS_OBSTACLES + 3 : RS_OBSTACLES + 6]))
+                self.set_model_state("obstacle_2", copy.deepcopy(state[RS_OBSTACLES + 6 : RS_OBSTACLES + 9]))
 
         # Set reset Event
         self.reset.set()
