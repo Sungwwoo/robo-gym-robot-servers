@@ -34,6 +34,7 @@ from threading import Event
 # collision = False
 # obstacles = [0.0] * 21
 NUM_OBSTACLES = 3
+
 RS_TARGET = 0
 RS_WEIGHTS = RS_TARGET + 3
 RS_SCAN = RS_WEIGHTS + 2
@@ -173,15 +174,15 @@ class RosBridge:
         weights = self.apf.get_weights()
 
         # Clipping Observations (velocity)
-        if base_twist[0] > 0 and base_twist[0] > self.max_lin_vel:
-            base_twist[0] = self.max_lin_vel
-        elif base_twist[0] < 0 and base_twist[0] < self.min_lin_vel:
-            base_twist[0] = self.min_lin_vel
+        # if base_twist[0] > 0 and base_twist[0] > self.max_lin_vel:
+        #     base_twist[0] = self.max_lin_vel
+        # elif base_twist[0] < 0 and base_twist[0] < self.min_lin_vel:
+        #     base_twist[0] = self.min_lin_vel
 
-        if base_twist[1] > 0 and base_twist[1] > self.max_ang_vel:
-            base_twist[1] = self.max_ang_vel
-        elif base_twist[1] < 0 and base_twist[1] < self.min_ang_vel:
-            base_twist[1] = self.min_ang_vel
+        # if base_twist[1] > 0 and base_twist[1] > self.max_ang_vel:
+        #     base_twist[1] = self.max_ang_vel
+        # elif base_twist[1] < 0 and base_twist[1] < self.min_ang_vel:
+        #     base_twist[1] = self.min_ang_vel
 
         self.get_state_event.set()
 
