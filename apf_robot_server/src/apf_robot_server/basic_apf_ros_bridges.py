@@ -74,18 +74,18 @@ class RosBridge:
 
         # Target publisher
         self.pub_target_marker = rospy.Publisher("target_marker", Marker, queue_size=10)
-        self.pub_target = rospy.Publisher(
-            "move_base_simple/goal", PoseStamped, queue_size=10
-        )
+        self.pub_target = rospy.Publisher("move_base_simple/goal", PoseStamped, queue_size=10)
 
         # Obstacle RViz Marker publisher
-        self.pub_obstacle_marker = rospy.Publisher(
-            "obstacle_marker", MarkerArray, queue_size=10
-        )
+        self.pub_obstacle_marker = rospy.Publisher("obstacle_marker", MarkerArray, queue_size=10)
 
         # Rviz Path publisher
         self.pub_base_path = rospy.Publisher("base_exec_path", Path, queue_size=10)
 
+        # Odometry initializer
+        self.init_odom = rospy.Publisher("set_pose", PoseWithCovarianceStamped, queue_size=10)
+
+        # APF instance
         self.apf_utils = apf_env_utils.APF()
 
         self.max_lin_vel, self.min_lin_vel = (
@@ -116,15 +116,12 @@ class RosBridge:
         if self.real_robot:
             rospy.Subscriber("odom", Odometry, self.cbOdom, queue_size=1)
         else:
-            rospy.Subscriber(
-                "jackal_velocity_controller/odom", Odometry, self.cbOdom, queue_size=1
-            )  # jackal_velocity_controller/odom
+            rospy.Subscriber("jackal_velocity_controller/odom", Odometry, self.cbOdom, queue_size=1)  # jackal_velocity_controller/odom
 
         rospy.Subscriber("base_collision", Bool, self.cbCollision)
         rospy.Subscriber("scan", LaserScan, self.cbScan)
-        self.init_odom = rospy.Publisher(
-            "set_pose", PoseWithCovarianceStamped, queue_size=10
-        )
+
+        self.initialize()
 
         # Reference frame for Path
         self.path_frame = "map"
@@ -136,9 +133,7 @@ class RosBridge:
             tfBuffer = tf2_ros.Buffer()
             listener = tf2_ros.TransformListener(tfBuffer)
 
-            trans = tfBuffer.lookup_transform(
-                "world", "map", rospy.Time(), rospy.Duration(1.0)
-            )
+            trans = tfBuffer.lookup_transform("world", "map", rospy.Time(), rospy.Duration(1.0))
             v = PyKDL.Vector(
                 trans.transform.translation.x,
                 trans.transform.translation.y,
@@ -152,17 +147,15 @@ class RosBridge:
             )
             self.world_to_map = PyKDL.Frame(r, v)
 
-        rospy.Subscriber("robot_pose", Pose, self.callbackState, queue_size=1)
-
         # Initialize Path
         self.base_path = Path()
         self.base_path.header.stamp = rospy.Time.now()
         self.base_path.header.frame_id = self.path_frame
 
+        rospy.Subscriber("robot_pose", Pose, self.callbackState, queue_size=1)
+
         # load APF
         self.apf = BasicAPF()
-
-        self.initialize()
 
         self.rate = rospy.Rate(30)  # 30Hz
         self.apf.run()
@@ -175,7 +168,7 @@ class RosBridge:
         self.scan = [0.0] * self.laser_len
         self.base_pose = [0.0] * 3
         self.base_twist = [0.0] * 2
-        self.forces = [0.0] * 3
+        self.forces = [0.0] * 9
         self.collision = [False]
         self.obstacles = [0.0 for i in range(0, 3 * NUM_OBSTACLES)]
         self.rostime = [0.0]
@@ -287,13 +280,9 @@ class RosBridge:
             for i in range(0, NUM_OBSTACLES):
                 self.set_model_state(
                     "unit_cylinder_" + str(i),
-                    copy.deepcopy(
-                        state[RS_OBSTACLES + 3 * i : RS_OBSTACLES + 3 * (i + 1)]
-                    ),
+                    copy.deepcopy(state[RS_OBSTACLES + 3 * i : RS_OBSTACLES + 3 * (i + 1)]),
                 )
-        self.publish_obstacle_markers(
-            copy.deepcopy(state[RS_OBSTACLES : RS_OBSTACLES + 3 * NUM_OBSTACLES])
-        )
+        self.publish_obstacle_markers(copy.deepcopy(state[RS_OBSTACLES : RS_OBSTACLES + 3 * NUM_OBSTACLES]))
 
         # Set Initial weights for apf
         self.apf.set_weights(self.apf_init_kp, self.apf_init_eta)
@@ -378,9 +367,7 @@ class RosBridge:
         start_state.twist.angular.z = 0.0
 
         try:
-            set_model_state_client = rospy.ServiceProxy(
-                "/gazebo/set_model_state/", SetModelState
-            )
+            set_model_state_client = rospy.ServiceProxy("/gazebo/set_model_state/", SetModelState)
             set_model_state_client(start_state)
         except rospy.ServiceException as e:
             print("Service call failed:" + e)
@@ -643,19 +630,13 @@ class RosBridge_with_PD(RosBridge):
             for i in range(0, NUM_OBSTACLES):
                 self.set_model_state(
                     "unit_cylinder_" + str(i),
-                    copy.deepcopy(
-                        state[RS_OBSTACLES + 3 * i : RS_OBSTACLES + 3 * (i + 1)]
-                    ),
+                    copy.deepcopy(state[RS_OBSTACLES + 3 * i : RS_OBSTACLES + 3 * (i + 1)]),
                 )
-        self.publish_obstacle_markers(
-            copy.deepcopy(state[RS_OBSTACLES : RS_OBSTACLES + 3 * NUM_OBSTACLES])
-        )
+        self.publish_obstacle_markers(copy.deepcopy(state[RS_OBSTACLES : RS_OBSTACLES + 3 * NUM_OBSTACLES]))
 
         # Set Initial weights for apf
         self.apf.set_weights(self.apf_init_kp, self.apf_init_eta)
-        self.apf.set_gains(
-            self.apf_init_linear_kp, self.apf_init_angular_kp, self.apf_init_angular_kd
-        )
+        self.apf.set_gains(self.apf_init_linear_kp, self.apf_init_angular_kp, self.apf_init_angular_kd)
 
         rospy.ServiceProxy("/gazebo/unpause_physics", Empty)
         self.reset_odom(state[RS_ROBOT_POSE + 2])
