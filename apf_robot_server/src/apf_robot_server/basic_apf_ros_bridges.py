@@ -169,7 +169,7 @@ class RosBridge:
         self.base_pose = [0.0] * 3
         self.base_twist = [0.0] * 2
         self.forces = [0.0] * 9
-        self.collision = [False]
+        self.collision = False
         self.obstacles = [0.0 for i in range(0, 3 * NUM_OBSTACLES)]
         self.rostime = [0.0]
 
@@ -182,13 +182,12 @@ class RosBridge:
             apf_weights = [0.0] * 2
             robot_pose = [0.0] * 3
             robot_twist = [0.0] * 2
-            forces = [0.0] * 3
+            forces = [0.0] * 9
             collision = False
             obstacles = [0.0] * 3 * NUM_OBSTACLES
             rostime = [0.0]
         """
         self.get_state_event.clear()
-
         # Get states
         target = copy.deepcopy(self.target)
         base_pose = copy.deepcopy(self.base_pose)
@@ -238,7 +237,7 @@ class RosBridge:
             apf_weights = [0.0] * 2
             robot_pose = [0.0] * 3
             robot_twist = [0.0] * 2
-            forces = [0.0] * 3
+            forces = [0.0] * 9
             collision = False
             obstacles = [0.0] * 3 * NUM_OBSTACLES
         """
@@ -288,7 +287,7 @@ class RosBridge:
         self.apf.set_weights(self.apf_init_kp, self.apf_init_eta)
 
         # rospy.ServiceProxy("/gazebo/unpause_physics", Empty)
-        self.reset_odom(state[RS_ROBOT_POSE + 2])
+        self.reset_odom(0.0)
         # After setting states, enable apf
         self.apf.run()
 
@@ -307,8 +306,8 @@ class RosBridge:
             marker.id = i
             marker.type = Marker.CYLINDER
             marker.action = Marker.ADD
-            marker.scale.x = 0.8
-            marker.scale.y = 0.8
+            marker.scale.x = 1.0
+            marker.scale.y = 1.0
             marker.scale.z = 0.1
             marker.pose.position.x = obstacles[3 * i]
             marker.pose.position.y = obstacles[3 * i + 1]
@@ -441,7 +440,6 @@ class RosBridge:
             rate.sleep()
             count = count + 1
             if count == 3:
-                count = 0
                 break
 
     def callbackState(self, data):
@@ -512,7 +510,7 @@ class RosBridge_with_PD(RosBridge):
         self.base_scan = [0.0] * self.laser_len
         self.base_pose = [0.0] * 3
         self.base_twist = [0.0] * 2
-        self.forces = [0.0] * 3
+        self.forces = [0.0] * 9
         self.collision = False
         self.obstacles = [0.0 for i in range(0, 3 * NUM_OBSTACLES)]
         self.rostime = [0.0]
@@ -540,7 +538,7 @@ class RosBridge_with_PD(RosBridge):
         base_scan = copy.deepcopy(self.scan)
         base_pose = copy.deepcopy(self.base_pose)
         base_twist = copy.deepcopy(self.base_twist)
-        in_collision = copy.deepcopy(self.collision)
+        in_collision = [copy.deepcopy(self.collision)]
         obstacles = [0.0 for i in range(0, 3 * NUM_OBSTACLES)]
         rostime = [rospy.Time.now().to_sec()]
 
@@ -550,15 +548,15 @@ class RosBridge_with_PD(RosBridge):
         pd_gains = self.apf.get_gains()
 
         # Clipping Observations (velocity)
-        if base_twist[0] > 0 and base_twist[0] > self.max_lin_vel:
-            base_twist[0] = self.max_lin_vel
-        elif base_twist[0] < 0 and base_twist[0] < self.min_lin_vel:
-            base_twist[0] = self.min_lin_vel
+        # if base_twist[0] > 0 and base_twist[0] > self.max_lin_vel:
+        #     base_twist[0] = self.max_lin_vel
+        # elif base_twist[0] < 0 and base_twist[0] < self.min_lin_vel:
+        #     base_twist[0] = self.min_lin_vel
 
-        if base_twist[1] > 0 and base_twist[1] > self.max_ang_vel:
-            base_twist[1] = self.max_ang_vel
-        elif base_twist[1] < 0 and base_twist[1] < self.min_ang_vel:
-            base_twist[1] = self.min_ang_vel
+        # if base_twist[1] > 0 and base_twist[1] > self.max_ang_vel:
+        #     base_twist[1] = self.max_ang_vel
+        # elif base_twist[1] < 0 and base_twist[1] < self.min_ang_vel:
+        #     base_twist[1] = self.min_ang_vel
 
         self.get_state_event.set()
 
@@ -570,7 +568,7 @@ class RosBridge_with_PD(RosBridge):
         msg.state.extend(base_pose)
         msg.state.extend(base_twist)
         msg.state.extend(forces)
-        msg.state.extend([in_collision])
+        msg.state.extend(in_collision)
         msg.state.extend(obstacles)
         msg.state.extend(rostime)
         msg.state.extend(pd_gains)
@@ -586,7 +584,7 @@ class RosBridge_with_PD(RosBridge):
             apf_weights = [0.0] * 2
             robot_pose = [0.0] * 3
             robot_twist = [0.0] * 2
-            forces = [0.0] * 3
+            forces = [0.0] * 9
             collision = False
             obstacles = [0.0] * 3 * NUM_OBSTACLES
             rostime = [0.0]
