@@ -52,8 +52,7 @@ RS_ROBOT_POSE = RS_SCAN + 811  # Laser scan length of jackal
 RS_ROBOT_TWIST = RS_ROBOT_POSE + 3
 RS_FORCES = RS_ROBOT_TWIST + 2
 RS_COLLISION = RS_FORCES + 9
-RS_OBSTACLES = RS_COLLISION + 1
-RS_ROSTIME = RS_OBSTACLES + 3 * NUM_OBSTACLES
+RS_ROSTIME = RS_COLLISION + 1
 RS_PDGAINS = RS_ROSTIME + 1
 
 
@@ -170,7 +169,6 @@ class RosBridge:
         self.base_twist = [0.0] * 2
         self.forces = [0.0] * 9
         self.collision = False
-        self.obstacles = [0.0 for i in range(0, 3 * NUM_OBSTACLES)]
         self.rostime = [0.0]
 
     def get_state(self):
@@ -194,7 +192,6 @@ class RosBridge:
         base_twist = copy.deepcopy(self.base_twist)
         base_scan = copy.deepcopy(self.scan)
         in_collision = [copy.deepcopy(self.collision)]
-        obstacles = [0.0 for i in range(0, 3 * NUM_OBSTACLES)]
         rostime = [rospy.Time.now().to_sec()]
 
         # Get forces from apf
@@ -223,7 +220,6 @@ class RosBridge:
         msg.state.extend(base_twist)
         msg.state.extend(forces)
         msg.state.extend(in_collision)
-        msg.state.extend(obstacles)
         msg.state.extend(rostime)
         msg.success = 1
 
@@ -276,18 +272,12 @@ class RosBridge:
             # Gazebo model repositioning delay
             rospy.sleep(1)
             # Set obstacles poses
-            for i in range(0, NUM_OBSTACLES):
-                self.set_model_state(
-                    "unit_cylinder_" + str(i),
-                    copy.deepcopy(state[RS_OBSTACLES + 3 * i : RS_OBSTACLES + 3 * (i + 1)]),
-                )
-        self.publish_obstacle_markers(copy.deepcopy(state[RS_OBSTACLES : RS_OBSTACLES + 3 * NUM_OBSTACLES]))
 
         # Set Initial weights for apf
         self.apf.set_weights(self.apf_init_kp, self.apf_init_eta)
 
         # rospy.ServiceProxy("/gazebo/unpause_physics", Empty)
-        self.reset_odom(0.0)
+        self.reset_odom()
         # After setting states, enable apf
         self.apf.run()
 
@@ -409,7 +399,7 @@ class RosBridge:
         self.pub_target_marker.publish(t_marker)
         self.pub_target.publish(target)
 
-    def reset_odom(self, yaw):
+    def reset_odom(self):
         zeropoint = PoseWithCovarianceStamped()
 
         zeropoint.header.frame_id = self.ns + "/odom"
@@ -423,7 +413,7 @@ class RosBridge:
         zeropoint.pose.pose.orientation.z = 0.0
         zeropoint.pose.pose.orientation.w = 0.0
 
-        orientation = PyKDL.Rotation.RPY(0, 0, yaw)
+        orientation = PyKDL.Rotation.RPY(0, 0, 0)
         (
             zeropoint.pose.pose.orientation.x,
             zeropoint.pose.pose.orientation.y,
@@ -512,7 +502,6 @@ class RosBridge_with_PD(RosBridge):
         self.base_twist = [0.0] * 2
         self.forces = [0.0] * 9
         self.collision = False
-        self.obstacles = [0.0 for i in range(0, 3 * NUM_OBSTACLES)]
         self.rostime = [0.0]
         self.pd_gains = [0.0] * 3
 
@@ -539,7 +528,6 @@ class RosBridge_with_PD(RosBridge):
         base_pose = copy.deepcopy(self.base_pose)
         base_twist = copy.deepcopy(self.base_twist)
         in_collision = [copy.deepcopy(self.collision)]
-        obstacles = [0.0 for i in range(0, 3 * NUM_OBSTACLES)]
         rostime = [rospy.Time.now().to_sec()]
 
         # Get forces from apf
@@ -569,7 +557,6 @@ class RosBridge_with_PD(RosBridge):
         msg.state.extend(base_twist)
         msg.state.extend(forces)
         msg.state.extend(in_collision)
-        msg.state.extend(obstacles)
         msg.state.extend(rostime)
         msg.state.extend(pd_gains)
         msg.success = 1
@@ -624,13 +611,6 @@ class RosBridge_with_PD(RosBridge):
             # self.set_model_state("Stop_sign", copy.deepcopy(state[RS_TARGET : RS_TARGET + 3]))
             # Gazebo model repositioning delay
             rospy.sleep(1)
-            # Set obstacles poses
-            for i in range(0, NUM_OBSTACLES):
-                self.set_model_state(
-                    "unit_cylinder_" + str(i),
-                    copy.deepcopy(state[RS_OBSTACLES + 3 * i : RS_OBSTACLES + 3 * (i + 1)]),
-                )
-        self.publish_obstacle_markers(copy.deepcopy(state[RS_OBSTACLES : RS_OBSTACLES + 3 * NUM_OBSTACLES]))
 
         # Set Initial weights for apf
         self.apf.set_weights(self.apf_init_kp, self.apf_init_eta)

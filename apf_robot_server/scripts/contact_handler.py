@@ -10,13 +10,13 @@ class ContactHandler:
     def __init__(self):
         self.pub_collision = rospy.Publisher("base_collision", Bool, queue_size=10)
 
-        self.sub_collision_0 = message_filters.Subscriber("base_collision_0", ContactsState)
+        # self.sub_collision_0 = message_filters.Subscriber("base_collision_0", ContactsState)
         self.sub_collision_1 = message_filters.Subscriber("base_collision_1", ContactsState)
         self.sub_collision_2 = message_filters.Subscriber("base_collision_2", ContactsState)
 
         ts = message_filters.TimeSynchronizer(
             [
-                self.sub_collision_0,
+                # self.sub_collision_0,
                 self.sub_collision_1,
                 self.sub_collision_2,
             ],
@@ -26,9 +26,9 @@ class ContactHandler:
 
         return
 
-    def cbCollision(self, data1, data2, data3):
+    def cbCollision(self, data2, data3):
         info = Bool()
-        if not (data1.states == [] and data2.states == [] and data3.states == []):
+        if not (data2.states == [] and data3.states == []):
             info.data = True
             for i in range(0, 20):
                 self.pub_collision.publish(info)
