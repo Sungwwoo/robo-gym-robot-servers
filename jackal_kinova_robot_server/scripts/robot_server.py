@@ -23,7 +23,7 @@ from gazebo_msgs.srv import GetModelState, SetModelState
 from visualization_msgs.msg import Marker, MarkerArray
 from sensor_msgs.msg import LaserScan
 from nav_msgs.msg import Path
-from jackal_kinova_robot_server.ros_bridge import RosBridge
+from jackal_kinova_robot_server.ros_bridge import RosBridge, RosBridge_Fixed
 import PyKDL
 import tf2_ros
 import copy
@@ -34,7 +34,7 @@ import numpy as np
 
 class RobotServerServicer(robot_server_pb2_grpc.RobotServerServicer):
     def __init__(self, real_robot):
-        self.rosbridge = RosBridge(real_robot=real_robot)
+        self.rosbridge = RosBridge_Fixed(real_robot=real_robot)
 
     def GetState(self, request, context):
         try:

@@ -486,3 +486,86 @@ class RosBridge:
             self.collision = False
         else:
             self.collision = True
+
+
+class RosBridge_Fixed(RosBridge):
+    def set_state(self, state_msg):
+        # Set environment state
+        state = state_msg.state
+        resp = rospy.ServiceProxy("/gazebo/pause_physics", Empty)
+        if resp:
+            rospy.loginfo("Paused gazebo for set_state service")
+        # Clear reset Event
+        self.reset.clear()
+        # Re-initialize Path
+        self.base_path = Path()
+        self.base_path.header.stamp = rospy.Time.now()
+        self.base_path.header.frame_id = self.path_frame
+
+        # Set target internal value
+        self.target = copy.deepcopy(state[RS_TARGET : RS_TARGET + 3])
+        # Publish Target Marker
+        self.publish_target_marker(self.target)
+
+        if not self.real_robot:
+            # Set Gazebo Robot Model state
+            self.set_model_state(
+                self.ns + "_jackal_kinova",
+                copy.deepcopy(state[RS_ROBOT_POSE : RS_ROBOT_POSE + 3]),
+            )
+            rospy.sleep(1)
+
+            # Set Gazebo Target Model state
+            # self.set_model_state("Stop_sign", copy.deepcopy(state[0:3]))
+
+        rospy.loginfo("obstacle location set")
+
+        rospy.ServiceProxy("/gazebo/unpause_physics", Empty)
+        self.reset_odom(0.0)
+
+        # Set reset Event
+        self.reset.set()
+
+    def get_state(self):
+        self.get_state_event.clear()
+        # Get environment state
+        state = [0.0 for i in range(0, self.state_length)]
+
+        state[RS_TARGET : RS_TARGET + 3] = copy.deepcopy(self.target)
+        state[RS_ROBOT_POSE : RS_ROBOT_POSE + 3] = copy.deepcopy(self.base_pose)
+        state[RS_ROBOT_TWIST : RS_ROBOT_TWIST + 2] = copy.deepcopy(self.base_twist)
+        state[RS_SCAN : RS_SCAN + self.laser_len] = copy.deepcopy(self.scan)
+        state[RS_COLLISION] = [copy.deepcopy(self.collision)]
+        state[RS_ROSTIME] = [rospy.Time.now().to_sec()]
+
+        target = copy.deepcopy(self.target)
+        base_pose = copy.deepcopy(self.base_pose)
+        base_twist = copy.deepcopy(self.base_twist)
+        base_scan = copy.deepcopy(self.scan)
+        in_collision = [copy.deepcopy(self.collision)]
+        rostime = [rospy.Time.now().to_sec()]
+
+        # if base_twist[0] > 0 and base_twist[0] > self.max_lin_vel:
+        #     base_twist[0] = self.max_lin_vel
+        # elif base_twist[0] < 0 and base_twist[0] < self.min_lin_vel:
+        #     base_twist[0] = self.min_lin_vel
+
+        # if base_twist[1] > 0 and base_twist[1] > self.max_ang_vel:
+        #     base_twist[1] = self.max_ang_vel
+        # elif base_twist[1] < 0 and base_twist[1] < self.min_ang_vel:
+        #     base_twist[1] = self.min_ang_vel
+
+        self.get_state_event.set()
+
+        # Create and fill State message
+        msg = robot_server_pb2.State()
+        # msg.state = state[:]
+        msg.state.extend(target)
+        msg.state.extend(base_pose)
+        msg.state.extend(base_twist)
+        msg.state.extend(base_scan)
+        msg.state.extend(in_collision)
+        msg.state.extend(rostime)
+        msg.success = 1
+
+        return msg
