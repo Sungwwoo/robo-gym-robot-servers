@@ -4,7 +4,10 @@ from apf_robot_server.basic_apf_ros_bridges import RosBridge
 import grpc
 import rospy
 from concurrent import futures
-from robo_gym_server_modules.robot_server.grpc_msgs.python import robot_server_pb2, robot_server_pb2_grpc
+from robo_gym_server_modules.robot_server.grpc_msgs.python import (
+    robot_server_pb2,
+    robot_server_pb2_grpc,
+)
 
 
 class RobotServerServicer(robot_server_pb2_grpc.RobotServerServicer):
@@ -26,7 +29,11 @@ class RobotServerServicer(robot_server_pb2_grpc.RobotServerServicer):
 
     def SendAction(self, request, context):
         try:
-            self.rosbridge.set_params(request.action[0], request.action[1])
+            self.rosbridge.set_params(
+                request.action[0],
+                request.action[1],
+                request.action[2],
+            )
             return robot_server_pb2.Success(success=1)
         except:
             return robot_server_pb2.Success(success=0)
@@ -36,7 +43,9 @@ def serve():
     server_port = rospy.get_param("~server_port")
     real_robot = rospy.get_param("~real_robot")
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=1))
-    robot_server_pb2_grpc.add_RobotServerServicer_to_server(RobotServerServicer(real_robot=real_robot), server)
+    robot_server_pb2_grpc.add_RobotServerServicer_to_server(
+        RobotServerServicer(real_robot=real_robot), server
+    )
     server.add_insecure_port("[::]:" + repr(server_port))
     server.start()
     if real_robot:
