@@ -2,31 +2,22 @@
 <launch>
   <arg name="gui" default="true" />
   <arg name="gazebo_gui" default="false" />
-  <arg name="world_path"
-    default="$(find jackal_kinova_gazebo)/worlds" />
-  <arg name="world_name"
-    default="obst_4_6by9.world" />
-  <arg
-    name="world" value="$(arg world_path)/$(arg world_name)" />
-  <arg name="server_port"
-    default="50050" />
+  <arg name="world_path" default="$(find jackal_kinova_gazebo)/worlds" />
+  <arg name="world_name" default="obst_4_6by9.world" />
+  <arg name="world" value="$(arg world_path)/$(arg world_name)" />
+  <arg name="server_port" default="50050" />
   <arg name="x" default="0" />
-  <arg name="y" default="0" />c <arg name="z"
-    default="0" />
+  <arg name="y" default="0" />
+  <arg name="z" default="0" />
   <arg name="yaw" default="0" />
   <arg name="joystick" default="true" />
-  <arg
-    name="debug" default="false" />
+  <arg name="debug" default="false" />
   <arg unless="$(arg debug)" name="launch_prefix" value="" />
-  <arg
-    if="$(arg debug)" name="launch_prefix" value="gdb --ex run --args" />
-  <arg name="rviz_config"
-    default="" />
+  <arg if="$(arg debug)" name="launch_prefix" value="gdb --ex run --args" />
+  <arg name="rviz_config" default="" />
   <arg if="$(eval rviz_config=='')" name="command_args" value="" />
-  <arg
-    unless="$(eval rviz_config=='')" name="command_args" value="-d $(arg rviz_config)" />
-  <arg
-    name="first" default="JK_01" />
+  <arg unless="$(eval rviz_config=='')" name="command_args" value="-d $(arg rviz_config)" />
+  <arg name="first" default="JK_01" />
   <arg name="second" default="JK_02" />
 
   <!-- spawn robot and bring up controllers etc. -->
