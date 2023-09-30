@@ -5,13 +5,13 @@
   <arg name="world_path"
     default="$(find jackal_kinova_gazebo)/worlds" />
   <arg name="world_name"
-    default="obst_4_6by9.world" />
+    default="learning_world_4.world" />
   <arg
     name="world" value="$(arg world_path)/$(arg world_name)" />
   <arg name="server_port"
     default="50051" />
-  <arg name="x" default="0" />
-  <arg name="y" default="0" />c <arg name="z"
+  <arg name="x" default="8" />
+  <arg name="y" default="-9" />c <arg name="z"
     default="0" />
   <arg name="yaw" default="0" />
   <arg name="joystick" default="true" />

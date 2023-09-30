@@ -34,8 +34,7 @@ RS_ROBOT_POSE = RS_SCAN + 811  # Laser scan length of jackal
 RS_ROBOT_TWIST = RS_ROBOT_POSE + 3
 RS_FORCES = RS_ROBOT_TWIST + 2
 RS_COLLISION = RS_FORCES + 9
-RS_OBSTACLES = RS_COLLISION + 1
-RS_ROSTIME = RS_OBSTACLES + 3 * NUM_OBSTACLES
+RS_ROSTIME = RS_COLLISION + 1
 RS_DETECTED_OBS = RS_ROSTIME + 1
 RS_PDGAINS = RS_DETECTED_OBS + 1
 
@@ -135,7 +134,6 @@ class RosBridge:
         self.base_twist = [0.0] * 2
         self.forces = [0.0] * 9
         self.collision = False
-        self.obstacles = [0.0 for i in range(0, 3 * NUM_OBSTACLES)]
         self.rostime = [0.0]
         self.detected_obs = [0.0]
 
@@ -162,24 +160,12 @@ class RosBridge:
         base_twist = copy.deepcopy(self.base_twist)
         base_scan = copy.deepcopy(self.scan)
         in_collision = copy.deepcopy(self.collision)
-        obstacles = [0.0 for i in range(0, 3 * NUM_OBSTACLES)]
         rostime = [rospy.Time.now().to_sec()]
 
         # Get forces from apf
         forces = self.apf.get_forces()
         weights = self.apf.get_weights()
         detected_obs = self.apf.get_n_detected_obstacles()
-
-        # Clipping Observations (velocity)
-        if base_twist[0] > 0 and base_twist[0] > self.max_lin_vel:
-            base_twist[0] = self.max_lin_vel
-        elif base_twist[0] < 0 and base_twist[0] < self.min_lin_vel:
-            base_twist[0] = self.min_lin_vel
-
-        if base_twist[1] > 0 and base_twist[1] > self.max_ang_vel:
-            base_twist[1] = self.max_ang_vel
-        elif base_twist[1] < 0 and base_twist[1] < self.min_ang_vel:
-            base_twist[1] = self.min_ang_vel
 
         self.get_state_event.set()
 
@@ -192,7 +178,6 @@ class RosBridge:
         msg.state.extend(base_twist)
         msg.state.extend(forces)
         msg.state.extend([in_collision])
-        msg.state.extend(obstacles)
         msg.state.extend(rostime)
         msg.state.extend([detected_obs])
         msg.success = 1
@@ -242,10 +227,6 @@ class RosBridge:
             # self.set_model_state("Stop_sign", copy.deepcopy(state[RS_TARGET : RS_TARGET + 3]))
             # Gazebo model repositioning delay
             rospy.sleep(1)
-            # Set obstacles poses
-            for i in range(0, NUM_OBSTACLES):
-                self.set_model_state("unit_cylinder_" + str(i), copy.deepcopy(state[RS_OBSTACLES + 3 * i : RS_OBSTACLES + 3 * (i + 1)]))
-        self.publish_obstacle_markers(copy.deepcopy(state[RS_OBSTACLES : RS_OBSTACLES + 3 * NUM_OBSTACLES]))
 
         # Set Initial weights for apf
         self.apf.set_weights(self.apf_init_kp, self.apf_init_eta)
@@ -452,9 +433,10 @@ class RosBridge:
         else:
             pass
 
-    def set_params(self, KP, ETA, ratio):
+    def set_params(self, KP, ETA, offset, ratio):
         rospy.sleep(0.05)
         self.apf.set_weights(KP, ETA)
+        self.apf.set_att_offset(offset)
         self.apf.set_num_obstacles_ratio(ratio)
 
 
@@ -498,7 +480,6 @@ class RosBridge_with_PD(RosBridge):
         base_pose = copy.deepcopy(self.base_pose)
         base_twist = copy.deepcopy(self.base_twist)
         in_collision = copy.deepcopy(self.collision)
-        obstacles = [0.0 for i in range(0, 3 * NUM_OBSTACLES)]
         rostime = [rospy.Time.now().to_sec()]
 
         rospy.loginfo("Collecting informations from APF")
@@ -507,17 +488,6 @@ class RosBridge_with_PD(RosBridge):
         weights = self.apf.get_weights()
         pd_gains = self.apf.get_gains()
         detected_obs = self.apf.get_n_detected_obstacles()
-
-        # Clipping Observations (velocity)
-        if base_twist[0] > 0 and base_twist[0] > self.max_lin_vel:
-            base_twist[0] = self.max_lin_vel
-        elif base_twist[0] < 0 and base_twist[0] < self.min_lin_vel:
-            base_twist[0] = self.min_lin_vel
-
-        if base_twist[1] > 0 and base_twist[1] > self.max_ang_vel:
-            base_twist[1] = self.max_ang_vel
-        elif base_twist[1] < 0 and base_twist[1] < self.min_ang_vel:
-            base_twist[1] = self.min_ang_vel
 
         self.get_state_event.set()
 
@@ -532,7 +502,6 @@ class RosBridge_with_PD(RosBridge):
         msg.state.extend(base_twist)
         msg.state.extend(forces)
         msg.state.extend([in_collision])
-        msg.state.extend(obstacles)
         msg.state.extend(rostime)
         msg.state.extend(detected_obs)
         msg.state.extend(pd_gains)
@@ -589,11 +558,6 @@ class RosBridge_with_PD(RosBridge):
             # self.set_model_state("Stop_sign", copy.deepcopy(state[RS_TARGET : RS_TARGET + 3]))
             # Gazebo model repositioning delay
             rospy.sleep(1)
-            # Set obstacles poses
-            for i in range(0, NUM_OBSTACLES):
-                self.set_model_state("unit_cylinder_" + str(i), copy.deepcopy(state[RS_OBSTACLES + 3 * i : RS_OBSTACLES + 3 * (i + 1)]))
-        self.publish_obstacle_markers(copy.deepcopy(state[RS_OBSTACLES : RS_OBSTACLES + 3 * NUM_OBSTACLES]))
-
         # Set Initial weights for apf
         self.apf.set_weights(self.apf_init_kp, self.apf_init_eta)
         self.apf.set_gains(self.apf_init_linear_kp, self.apf_init_angular_kp, self.apf_init_angular_kd)

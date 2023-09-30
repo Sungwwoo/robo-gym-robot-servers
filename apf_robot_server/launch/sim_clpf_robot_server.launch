@@ -34,7 +34,7 @@
     file="$(find jackal_kinova_gazebo)/launch/rl_empty_world.launch">
     <arg name="world" value="$(arg world)" />
     <arg name="gui" value="$(arg gazebo_gui)" />
-    <arg name="paused" value="true" />
+    <arg name="paused" value="false" />
 
   </include>
 
@@ -49,10 +49,6 @@
       <arg name="z" value="$(arg z)" />
       <arg name="yaw" value="$(arg yaw)" />
       <arg name="joystick" value="$(arg joystick)" />
-      <arg name="ns" value="$(arg first)" />
-    </include>
-
-    <include file="$(find jackal_kinova_moveit_config)/launch/rl_driver_launch.launch">
       <arg name="ns" value="$(arg first)" />
     </include>
 
@@ -82,6 +78,9 @@
       output="screen">
     </node>
 
+    <include file="$(find jackal_kinova_moveit_config)/launch/moveit_rviz.launch">
+      <arg name="rviz_config" value="$(find jackal_kinova_moveit_config)/launch/rl_rviz.rviz" />
+    </include>
   </group>
   <!-- <node name="rqt_tf_tree"
     pkg="rqt_tf_tree" type="rqt_tf_tree" output="screen" />

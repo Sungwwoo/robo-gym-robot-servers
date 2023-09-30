@@ -34,7 +34,7 @@ import numpy as np
 
 class RobotServerServicer(robot_server_pb2_grpc.RobotServerServicer):
     def __init__(self, real_robot):
-        self.rosbridge = RosBridge_Fixed(real_robot=real_robot)
+        self.rosbridge = RosBridge(real_robot=real_robot)
 
     def GetState(self, request, context):
         try:
@@ -51,9 +51,7 @@ class RobotServerServicer(robot_server_pb2_grpc.RobotServerServicer):
 
     def SendAction(self, request, context):
         try:
-            lin_vel, ang_vel = self.rosbridge.publish_env_cmd_vel(
-                request.action[0], request.action[1]
-            )
+            lin_vel, ang_vel = self.rosbridge.publish_env_cmd_vel(request.action[0], request.action[1])
             return robot_server_pb2.Success(success=1)
         except:
             return robot_server_pb2.Success(success=0)
@@ -63,9 +61,7 @@ def serve():
     server_port = rospy.get_param("~server_port")
     real_robot = rospy.get_param("~real_robot")
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
-    robot_server_pb2_grpc.add_RobotServerServicer_to_server(
-        RobotServerServicer(real_robot=real_robot), server
-    )
+    robot_server_pb2_grpc.add_RobotServerServicer_to_server(RobotServerServicer(real_robot=real_robot), server)
     server.add_insecure_port("[::]:" + repr(server_port))
     server.start()
     if real_robot:

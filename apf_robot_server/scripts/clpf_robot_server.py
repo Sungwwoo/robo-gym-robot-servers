@@ -26,7 +26,7 @@ class RobotServerServicer(robot_server_pb2_grpc.RobotServerServicer):
 
     def SendAction(self, request, context):
         try:
-            self.rosbridge.set_params(request.action[0], request.action[1], request.action[2])
+            self.rosbridge.set_params(request.action[0], request.action[1], request.action[2], request.action[3])
             return robot_server_pb2.Success(success=1)
         except:
             return robot_server_pb2.Success(success=0)
