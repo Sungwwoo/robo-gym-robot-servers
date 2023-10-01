@@ -20,7 +20,7 @@ merging_threshold: 0.08           # meters
 
 # Robot Dynamics Parameters
 # Linear
-vel_x_max: 1.5
+vel_x_max: 1.0
 vel_x_min: 0.1
 acc_x_lim: 3.0
 linear_kp: 0.5

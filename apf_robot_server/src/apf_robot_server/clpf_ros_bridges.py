@@ -51,8 +51,16 @@ RS_PDGAINS = RS_DETECTED_OBS + 1
 
 class RosBridge:
     def __init__(self, real_robot=False):
+        # Get node namespace
         ns = rospy.get_namespace()
-        self.ns = ns[1 : len(ns) - 1]
+        rospy.loginfo('Got namespace "%s"', ns)
+        if ns == "/":
+            self.ns = ""
+            self.robot_name = "jackal_kinova"
+        else:
+            self.ns = ns[1 : len(ns)]
+            self.robot_name = self.ns + "_jackal_kinova"
+
         rospy.wait_for_service("/gazebo/get_physics_properties")
 
         # Event is clear while initialization or set_state is going on
@@ -250,7 +258,7 @@ class RosBridge:
         if not self.real_robot:
             # Set Gazebo Robot Model state
             self.set_model_state(
-                self.ns + "_jackal_kinova",
+                self.robot_name,
                 copy.deepcopy(state[RS_ROBOT_POSE : RS_ROBOT_POSE + 3]),
             )
             # Set Gazebo Target Model state
@@ -387,7 +395,7 @@ class RosBridge:
     def reset_odom(self):
         zeropoint = PoseWithCovarianceStamped()
 
-        zeropoint.header.frame_id = self.ns + "/odom"
+        zeropoint.header.frame_id = self.ns + "odom"
 
         zeropoint.pose.pose.position.x = 0.0
         zeropoint.pose.pose.position.y = 0.0
@@ -592,7 +600,7 @@ class RosBridge_with_PD(RosBridge):
         if not self.real_robot:
             # Set Gazebo Robot Model state
             self.set_model_state(
-                self.ns + "_jackal_kinova",
+                self.robot_name,
                 copy.deepcopy(state[RS_ROBOT_POSE : RS_ROBOT_POSE + 3]),
             )
             # Set Gazebo Target Model state

@@ -115,7 +115,9 @@ class RosBridge:
         if self.real_robot:
             rospy.Subscriber("odom", Odometry, self.cbOdom, queue_size=1)
         else:
-            rospy.Subscriber("jackal_velocity_controller/odom", Odometry, self.cbOdom, queue_size=1)  # jackal_velocity_controller/odom
+            rospy.Subscriber(
+                "jackal_velocity_controller/odom", Odometry, self.cbOdom, queue_size=1
+            )  # jackal_velocity_controller/odom
 
         rospy.Subscriber("base_collision", Bool, self.cbCollision)
         rospy.Subscriber("scan", LaserScan, self.cbScan)
@@ -614,7 +616,9 @@ class RosBridge_with_PD(RosBridge):
 
         # Set Initial weights for apf
         self.apf.set_weights(self.apf_init_kp, self.apf_init_eta)
-        self.apf.set_gains(self.apf_init_linear_kp, self.apf_init_angular_kp, self.apf_init_angular_kd)
+        self.apf.set_gains(
+            self.apf_init_linear_kp, self.apf_init_angular_kp, self.apf_init_angular_kd
+        )
 
         rospy.ServiceProxy("/gazebo/unpause_physics", Empty)
         self.reset_odom(state[RS_ROBOT_POSE + 2])

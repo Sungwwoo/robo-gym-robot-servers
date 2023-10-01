@@ -32,14 +32,20 @@ if __name__ == "__main__":
     rospy.init_node("goal_tf_constructor", disable_signals=True)
 
     ns = rospy.get_namespace()
-    ns = ns[1 : len(ns)]
+
+    if ns == "/":
+        ns = ""
+    else:
+        ns = ns[1 : len(ns)]
     rospy.loginfo("Using namespace /" + ns + " for tf publisher")
 
     sendTransform = False
     goal_trans = Vector3()
     goal_rot = Quaternion()
     br = TransformBroadcaster()
-    sub_base_goal = rospy.Subscriber("move_base_simple/goal", PoseStamped, cbMoveBaseGoal, queue_size=2)
+    sub_base_goal = rospy.Subscriber(
+        "move_base_simple/goal", PoseStamped, cbMoveBaseGoal, queue_size=2
+    )
 
     while not rospy.is_shutdown():
         if sendTransform:

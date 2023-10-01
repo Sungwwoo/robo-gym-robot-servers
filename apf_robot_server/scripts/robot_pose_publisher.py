@@ -9,7 +9,11 @@ def jackal_pose_publisher():
     rospy.init_node("jackal_pose_pub")
 
     ns = rospy.get_namespace()
-    ns = ns[1 : len(ns) - 1]
+    if ns == "/":
+        robot_name = "jackal_kinova"
+    else:
+        ns = ns[1 : len(ns) - 1]
+        robot_name = ns + "_jackal_kinova"
     pub = rospy.Publisher("robot_pose", Pose, queue_size=10)
     r = rospy.Rate(10.0)
     rospy.wait_for_service("/gazebo/get_model_state")
@@ -17,7 +21,7 @@ def jackal_pose_publisher():
     while not rospy.is_shutdown():
         try:
             model_state = rospy.ServiceProxy("/gazebo/get_model_state", GetModelState)
-            model_coordinates = model_state(ns + "_jackal_kinova", "")
+            model_coordinates = model_state(robot_name, "")
             pose = Pose()
             pose.position.x = model_coordinates.pose.position.x
             pose.position.y = model_coordinates.pose.position.y
