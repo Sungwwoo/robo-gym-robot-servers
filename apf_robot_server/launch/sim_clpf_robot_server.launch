@@ -3,11 +3,11 @@
   <arg name="gui" default="true" />
   <arg name="gazebo_gui" default="false" />
   <arg name="world_path" default="$(find jackal_kinova_gazebo)/worlds" />
-  <arg name="world_name" default="obst_4_6by9.world" />
+  <arg name="world_name" default="final_rooms.world" />
   <arg name="world" value="$(arg world_path)/$(arg world_name)" />
   <arg name="server_port" default="50050" />
-  <arg name="x" default="-9.5" />
-  <arg name="y" default="-10.0" />
+  <arg name="x" default="0.0" />
+  <arg name="y" default="0.0" />
   <arg name="z" default="0" />
   <arg name="yaw" default="0" />
   <arg name="joystick" default="true" />
@@ -41,8 +41,10 @@
     <arg name="joystick" value="$(arg joystick)" />
   </include>
 
-  <!-- <include file="$(find jackal_kinova_gazebo)/launch/fake_localization.launch">
-  </include> -->
+  <include file="$(find jackal_kinova_gazebo)/launch/fake_localization.launch">
+    <arg name="delta_x" value="$(arg x)" />
+    <arg name="delta_y" value="$(arg y)" />
+  </include>
 
   <!-- Launch robot_pose publisher -->
   <node name="robot_pose_publisher" pkg="apf_robot_server" type="robot_pose_publisher.py"

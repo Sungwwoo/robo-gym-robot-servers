@@ -1,6 +1,6 @@
 # Potential Field Method Gains
-attractive_potential_gain: 10.0
-repulsive_potential_gain: 300.0
+attractive_potential_gain: 90.0
+repulsive_potential_gain: 120.0
 
 attractive_rho_o: 1.0
 
@@ -22,11 +22,11 @@ merging_threshold: 0.08           # meters
 # Linear
 vel_x_max: 1.0
 vel_x_min: 0.1
-acc_x_lim: 3.0
+acc_x_lim: 1.5
 linear_kp: 0.5
 
 # Angular
-acc_theta_lim: 3.0
+acc_theta_lim: 2.0
 vel_theta_max: 1.5
 vel_theta_min: 0.0
 
@@ -34,7 +34,7 @@ angular_kp: 2.0
 angular_kd: 0.8
 
 # Goal Parameters
-xy_goal_tolerance: 0.2
+xy_goal_tolerance: 0.4
 yaw_goal_tolerance: 0.1
 in_place_vel_theta: 0.2
 
