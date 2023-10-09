@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 from lidar_based_potential_field.potential_fields import ClusteredAPF
+import lidar_based_potential_field.ros_utils as ros_utils
 import grpc
 import rospy
 from std_srvs.srv import Empty
@@ -156,7 +157,9 @@ class RosBridge:
         self.apf = ClusteredAPF()
 
         self.initialize()
-
+        self.prev_time = 0.0
+        self.prev_vel_lin, self.prev_vel_ang = 0.0, 0.0
+        self.prev_base_pose = [0.0, 0.0, 0.0]
         self.rate = rospy.Rate(30)  # 30Hz
         self.apf.run()
         self.reset.set()
@@ -172,6 +175,9 @@ class RosBridge:
         self.collision = False
         self.rostime = [0.0]
         self.detected_obs = [0.0]
+        self.moved_distance = 0.0
+        self.acc_lin = 0.0
+        self.acc_ang = 0.0
 
     def get_state(self):
         """Get states. States are used to calculate reward in step(),
@@ -196,6 +202,9 @@ class RosBridge:
         base_scan = copy.deepcopy(self.scan)
         in_collision = [copy.deepcopy(self.collision)]
         rostime = [rospy.Time.now().to_sec()]
+        moved_distance = copy.deepcopy(self.moved_distance)
+        acc_lin = copy.deepcopy(self.acc_lin)
+        acc_ang = copy.deepcopy(self.acc_ang)
 
         # Get forces from apf
         forces = self.apf.get_forces()
@@ -215,8 +224,12 @@ class RosBridge:
         msg.state.extend(in_collision)
         msg.state.extend(rostime)
         msg.state.extend([detected_obs])
+        msg.state.extend([moved_distance])
+        msg.state.extend([acc_lin])
+        msg.state.extend([acc_ang])
         msg.success = 1
-
+        rospy.loginfo("Liner_acc: {:.3f}, Angular_acc: {:.3f}".format(acc_lin, acc_ang))
+        self.acc_ang, self.acc_lin, self.moved_distance = 0.0, 0.0, 0.0
         return msg
 
     def set_state(self, state_msg):
@@ -268,11 +281,16 @@ class RosBridge:
 
         # Set Initial weights for apf
         self.apf.set_weights(self.apf_init_kp, self.apf_init_eta)
-
         # rospy.ServiceProxy("/gazebo/unpause_physics", Empty)
         self.reset_odom()
+
+        rospy.sleep(5)
         # After setting states, enable apf
         self.apf.run()
+        self.prev_time = rospy.Time.now().to_sec()
+        self.acc_ang, self.acc_lin, self.moved_distance = 0.0, 0.0, 0.0
+        self.prev_vel_lin, self.prev_vel_ang = 0.0, 0.0
+        self.prev_base_pose = copy.deepcopy(state[RS_ROBOT_POSE : RS_ROBOT_POSE + 3])
 
         # Set reset Event
         self.reset.set()
@@ -428,6 +446,9 @@ class RosBridge:
     def callbackState(self, data):
         # If state is not being reset proceed otherwise skip callback
         if self.reset.isSet():
+            current_time = rospy.Time.now().to_sec()
+            timeDiff = current_time - self.prev_time
+
             if self.real_robot:
                 # Convert Pose from relative to Map to relative to World frame
                 f_r_in_map = posemath.fromMsg(data)
@@ -447,6 +468,13 @@ class RosBridge:
             euler_orientation = orientation.GetRPY()
             yaw = euler_orientation[2]
 
+            pose_diff = [a - b for a, b in zip([x, y, yaw], self.prev_base_pose)]
+            ds = np.hypot(pose_diff[0], pose_diff[1])
+            v = ds / timeDiff
+            acc_lin = abs((v - self.prev_vel_lin) / timeDiff)
+            w = pose_diff[2] / timeDiff
+            acc_ang = abs((w - self.prev_vel_ang) / timeDiff)
+
             # Append Pose to Path
             stamped_base_pose = PoseStamped()
             stamped_base_pose.pose = data
@@ -457,6 +485,19 @@ class RosBridge:
 
             # Update internal Pose variable
             self.base_pose = copy.deepcopy([x, y, yaw])
+
+            if acc_lin > 20.0:
+                acc_lin = 20.0
+            if acc_ang > 30.0:
+                acc_lin = 30.0
+            self.acc_lin += acc_lin
+            self.acc_ang += acc_ang
+            self.moved_distance += ds
+
+            self.prev_time = current_time
+            self.prev_vel_lin = v
+            self.prev_vel_ang = w
+            self.prev_base_pose = copy.deepcopy([x, y, yaw])
         else:
             pass
 
