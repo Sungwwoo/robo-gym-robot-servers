@@ -72,16 +72,12 @@ class RosBridge:
         # Target RViz Marker publisher
         self.target_pub = rospy.Publisher("target_marker", Marker, queue_size=10)
         # Obstacle RViz Marker publisher
-        self.pub_obstacle_marker = rospy.Publisher(
-            "obstacle_marker", MarkerArray, queue_size=10
-        )
+        self.pub_obstacle_marker = rospy.Publisher("obstacle_marker", MarkerArray, queue_size=10)
 
         # Rviz Path publisher
         self.base_exec_path = rospy.Publisher("base_exec_path", Path, queue_size=10)
 
-        self.init_odom = rospy.Publisher(
-            "set_pose", PoseWithCovarianceStamped, queue_size=10
-        )
+        self.init_odom = rospy.Publisher("set_pose", PoseWithCovarianceStamped, queue_size=10)
 
         self.jackal_kinova = jackal_kinova_utils.Jackal_Kinova()
         self.max_lin_vel, self.min_lin_vel = (
@@ -142,9 +138,7 @@ class RosBridge:
             tfBuffer = tf2_ros.Buffer()
             listener = tf2_ros.TransformListener(tfBuffer)
 
-            trans = tfBuffer.lookup_transform(
-                "world", "map", rospy.Time(), rospy.Duration(1.0)
-            )
+            trans = tfBuffer.lookup_transform("world", "map", rospy.Time(), rospy.Duration(1.0))
             v = PyKDL.Vector(
                 trans.transform.translation.x,
                 trans.transform.translation.y,
@@ -254,9 +248,7 @@ class RosBridge:
             for i in range(0, NUM_OBSTACLES):
                 self.set_model_state(
                     "unit_cylinder_" + str(i),
-                    copy.deepcopy(
-                        state[RS_OBSTACLES + 3 * i : RS_OBSTACLES + 3 * (i + 1)]
-                    ),
+                    copy.deepcopy(state[RS_OBSTACLES + 3 * i : RS_OBSTACLES + 3 * (i + 1)]),
                 )
             self.publish_obstacle_markers(
                 copy.deepcopy(state[RS_OBSTACLES : RS_OBSTACLES + 3 * NUM_OBSTACLES])
@@ -391,9 +383,7 @@ class RosBridge:
         start_state.twist.angular.z = 0.0
 
         try:
-            set_model_state_client = rospy.ServiceProxy(
-                "/gazebo/set_model_state/", SetModelState
-            )
+            set_model_state_client = rospy.ServiceProxy("/gazebo/set_model_state/", SetModelState)
             set_model_state_client(start_state)
         except rospy.ServiceException as e:
             print("Service call failed:" + e)
@@ -470,14 +460,11 @@ class RosBridge:
 
     def LaserScan_callback(self, data):
         if self.get_state_event.isSet():
-            scan = data.ranges
-            # scan = scan[8:len(scan)-8] # when you want remove first and last scan data activate this line
-            # =list(filter(lambda a: a != 0.0, scan))   # remove all 0.0 values that are at beginning and end of scan list
-            scan = np.array(scan)
-            scan = np.nan_to_num(scan)
-            scan = np.clip(scan, data.range_min, data.range_max)
-            self.scan = copy.deepcopy(scan.tolist())
-            self.safe_to_move_front = all(i >= 0.04 for i in scan)
+            ranges = np.array(data.ranges)
+            for i in range(0, len(ranges)):
+                if ranges[i] == float("inf"):
+                    ranges[i] = 100.0
+            self.scan = copy.deepcopy(ranges)
         else:
             pass
 
