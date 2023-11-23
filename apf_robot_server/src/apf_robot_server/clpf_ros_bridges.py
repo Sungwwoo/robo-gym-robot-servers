@@ -62,8 +62,6 @@ class RosBridge:
             self.ns = ns[1 : len(ns)]
             self.robot_name = self.ns + "_jackal_kinova"
 
-        rospy.wait_for_service("/gazebo/get_physics_properties")
-
         # Event is clear while initialization or set_state is going on
         self.reset = Event()
         self.reset.clear()
@@ -111,7 +109,7 @@ class RosBridge:
 
         # Odometry of the robot subscriber
         if self.real_robot:
-            rospy.Subscriber("odom", Odometry, self.cbOdom, queue_size=1)
+            rospy.Subscriber("odometry/filtered", Odometry, self.cbOdom, queue_size=1)
         else:
             rospy.Subscriber(
                 "jackal_velocity_controller/odom", Odometry, self.cbOdom, queue_size=1
@@ -126,25 +124,25 @@ class RosBridge:
         self.path_frame = "map"
 
         if self.real_robot:
-            self.path_frame = "world"
+            self.path_frame = "map"
             # Apply transform to center the robot, with real_robot we use World frame,
             # World is the Map frame translated in XY to center robot
-            tfBuffer = tf2_ros.Buffer()
-            listener = tf2_ros.TransformListener(tfBuffer)
+            # tfBuffer = tf2_ros.Buffer()
+            # listener = tf2_ros.TransformListener(tfBuffer)
 
-            trans = tfBuffer.lookup_transform("world", "map", rospy.Time(), rospy.Duration(1.0))
-            v = PyKDL.Vector(
-                trans.transform.translation.x,
-                trans.transform.translation.y,
-                trans.transform.translation.z,
-            )
-            r = PyKDL.Rotation.Quaternion(
-                trans.transform.rotation.x,
-                trans.transform.rotation.y,
-                trans.transform.rotation.z,
-                trans.transform.rotation.w,
-            )
-            self.world_to_map = PyKDL.Frame(r, v)
+            # trans = tfBuffer.lookup_transform("world", "map", rospy.Time(), rospy.Duration(1.0))
+            # v = PyKDL.Vector(
+            #     trans.transform.translation.x,
+            #     trans.transform.translation.y,
+            #     trans.transform.translation.z,
+            # )
+            # r = PyKDL.Rotation.Quaternion(
+            #     trans.transform.rotation.x,
+            #     trans.transform.rotation.y,
+            #     trans.transform.rotation.z,
+            #     trans.transform.rotation.w,
+            # )
+            # self.world_to_map = PyKDL.Frame(r, v)
 
         rospy.Subscriber("robot_pose", Pose, self.callbackState, queue_size=1)
 
@@ -163,6 +161,7 @@ class RosBridge:
         self.rate = rospy.Rate(30)  # 30Hz
         self.apf.run()
         self.reset.set()
+        rospy.loginfo("Robot Server Initialized")
 
     def initialize(self):
         # Robot server states
@@ -193,6 +192,7 @@ class RosBridge:
             rostime = [0.0]
             detected_obs = [0]
         """
+        rospy.loginfo("Trying to get state from robot server")
         self.get_state_event.clear()
 
         # Get states
@@ -201,7 +201,8 @@ class RosBridge:
         base_twist = copy.deepcopy(self.base_twist)
         base_scan = copy.deepcopy(self.scan)
         in_collision = [copy.deepcopy(self.collision)]
-        rostime = [rospy.Time.now().to_sec()]
+        rostime = [rospy.Time.now().to_sec() % 1000.0]
+        rospy.loginfo("Time: {}".format(rostime))
         moved_distance = copy.deepcopy(self.moved_distance)
         acc_lin = copy.deepcopy(self.acc_lin)
         acc_ang = copy.deepcopy(self.acc_ang)
@@ -228,7 +229,6 @@ class RosBridge:
         msg.state.extend([acc_lin])
         msg.state.extend([acc_ang])
         msg.success = 1
-        rospy.loginfo("Liner_acc: {:.3f}, Angular_acc: {:.3f}".format(acc_lin, acc_ang))
         self.acc_ang, self.acc_lin, self.moved_distance = 0.0, 0.0, 0.0
         return msg
 
@@ -248,10 +248,6 @@ class RosBridge:
         # pause apf
         self.apf.stop()
 
-        # resp = rospy.ServiceProxy("/gazebo/pause_physics", Empty)
-        # if resp:
-        #     rospy.loginfo("Paused gazebo for set_state service")
-        # Set environment state
         state = state_msg.state
 
         # Clear reset Event
@@ -274,14 +270,11 @@ class RosBridge:
                 self.robot_name,
                 copy.deepcopy(state[RS_ROBOT_POSE : RS_ROBOT_POSE + 3]),
             )
-            # Set Gazebo Target Model state
-            # self.set_model_state("Stop_sign", copy.deepcopy(state[RS_TARGET : RS_TARGET + 3]))
             # Gazebo model repositioning delay
             rospy.sleep(1)
 
         # Set Initial weights for apf
         self.apf.set_weights(self.apf_init_kp, self.apf_init_eta)
-        # rospy.ServiceProxy("/gazebo/unpause_physics", Empty)
         self.reset_odom()
 
         rospy.sleep(5)
@@ -449,11 +442,11 @@ class RosBridge:
             current_time = rospy.Time.now().to_sec()
             timeDiff = current_time - self.prev_time
 
-            if self.real_robot:
-                # Convert Pose from relative to Map to relative to World frame
-                f_r_in_map = posemath.fromMsg(data)
-                f_r_in_world = self.world_to_map * f_r_in_map
-                data = posemath.toMsg(f_r_in_world)
+            # if self.real_robot:
+            #     # Convert Pose from relative to Map to relative to World frame
+            #     f_r_in_map = posemath.fromMsg(data)
+            #     f_r_in_world = self.world_to_map * f_r_in_map
+            #     data = posemath.toMsg(f_r_in_world)
 
             x = data.position.x
             y = data.position.y
@@ -516,13 +509,16 @@ class RosBridge:
 
     def cbScan(self, scan):
         if self.get_state_event.isSet():
-            ranges = scan.ranges
+            ranges = np.array(scan.ranges)
+            for i in range(0, len(ranges)):
+                if ranges[i] == float("inf"):
+                    ranges[i] = 100.0
             self.scan = copy.deepcopy(ranges)
         else:
             pass
 
     def set_params(self, KP, ETA, offset, ratio):
-        rospy.sleep(0.05)
+        rospy.sleep(0.1)
         self.apf.set_weights(KP, ETA)
         self.apf.set_att_offset(offset)
         self.apf.set_num_obstacles_ratio(ratio)
