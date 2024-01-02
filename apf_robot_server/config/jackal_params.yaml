@@ -19,10 +19,12 @@ clustering_threshold: 5           # index
 merging_threshold: 0.08           # meters
 
 # Robot Dynamics Parameters
+
 # Linear
 vel_x_max: 1.0
 vel_x_min: 0.1
 acc_x_lim: 1.5
+
 linear_kp: 0.5
 
 # Angular
@@ -31,10 +33,10 @@ vel_theta_max: 1.5
 vel_theta_min: 0.0
 
 angular_kp: 2.0
-angular_kd: 0.8
+angular_kd: 0.01
 
 # Goal Parameters
-xy_goal_tolerance: 0.4
+xy_goal_tolerance: 0.3
 yaw_goal_tolerance: 0.1
 in_place_vel_theta: 0.2
 
@@ -42,9 +44,9 @@ in_place_vel_theta: 0.2
 check_potential: False
 
 
-# Initial weights
+# Initial weights (for RL)
 init_kp: 10
 init_eta: 100
 init_linear_kp: 0.4
-init_angular_kp: 6
+init_angular_kp: 1.0
 init_angular_kd: 0.4

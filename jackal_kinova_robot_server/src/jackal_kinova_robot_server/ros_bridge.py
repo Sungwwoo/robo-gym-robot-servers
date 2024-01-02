@@ -58,7 +58,14 @@ RS_OBSTACLES = RS_ROSTIME + 1
 class RosBridge:
     def __init__(self, real_robot=False):
         ns = rospy.get_namespace()
-        self.ns = ns[1 : len(ns) - 1]
+        rospy.loginfo('Got namespace "%s"', ns)
+        if ns == "/":
+            self.ns = ""
+            self.robot_name = "jackal_kinova"
+        else:
+            self.ns = ns[1 : len(ns)]
+            self.robot_name = self.ns + "_jackal_kinova"
+
         # Event is clear while initialization or set_state is going on
         self.reset = Event()
         self.reset.clear()
@@ -131,26 +138,26 @@ class RosBridge:
         self.path_frame = "map"
 
         if self.real_robot:
-            self.path_frame = "world"
+            self.path_frame = "map"
 
             # Apply transform to center the robot, with real_robot we use World frame,
             # World is the Map frame translated in XY to center robot
-            tfBuffer = tf2_ros.Buffer()
-            listener = tf2_ros.TransformListener(tfBuffer)
+            # tfBuffer = tf2_ros.Buffer()
+            # listener = tf2_ros.TransformListener(tfBuffer)
 
-            trans = tfBuffer.lookup_transform("world", "map", rospy.Time(), rospy.Duration(1.0))
-            v = PyKDL.Vector(
-                trans.transform.translation.x,
-                trans.transform.translation.y,
-                trans.transform.translation.z,
-            )
-            r = PyKDL.Rotation.Quaternion(
-                trans.transform.rotation.x,
-                trans.transform.rotation.y,
-                trans.transform.rotation.z,
-                trans.transform.rotation.w,
-            )
-            self.world_to_map = PyKDL.Frame(r, v)
+            # trans = tfBuffer.lookup_transform("world", "map", rospy.Time(), rospy.Duration(1.0))
+            # v = PyKDL.Vector(
+            #     trans.transform.translation.x,
+            #     trans.transform.translation.y,
+            #     trans.transform.translation.z,
+            # )
+            # r = PyKDL.Rotation.Quaternion(
+            #     trans.transform.rotation.x,
+            #     trans.transform.rotation.y,
+            #     trans.transform.rotation.z,
+            #     trans.transform.rotation.w,
+            # )
+            # self.world_to_map = PyKDL.Frame(r, v)
 
         rospy.Subscriber("robot_pose", Pose, self.callbackState, queue_size=1)
 
@@ -236,7 +243,7 @@ class RosBridge:
         if not self.real_robot:
             # Set Gazebo Robot Model state
             self.set_model_state(
-                self.ns + "_jackal_kinova",
+                self.robot_name,
                 copy.deepcopy(state[RS_ROBOT_POSE : RS_ROBOT_POSE + 3]),
             )
             rospy.sleep(1)
@@ -316,7 +323,7 @@ class RosBridge:
     def reset_odom(self, yaw):
         zeropoint = PoseWithCovarianceStamped()
 
-        zeropoint.header.frame_id = self.ns + "/odom"
+        zeropoint.header.frame_id = self.ns + "odom"
 
         zeropoint.pose.pose.position.x = 0.0
         zeropoint.pose.pose.position.y = 0.0
@@ -479,9 +486,6 @@ class RosBridge_Fixed(RosBridge):
     def set_state(self, state_msg):
         # Set environment state
         state = state_msg.state
-        resp = rospy.ServiceProxy("/gazebo/pause_physics", Empty)
-        if resp:
-            rospy.loginfo("Paused gazebo for set_state service")
         # Clear reset Event
         self.reset.clear()
         # Re-initialize Path
@@ -497,7 +501,7 @@ class RosBridge_Fixed(RosBridge):
         if not self.real_robot:
             # Set Gazebo Robot Model state
             self.set_model_state(
-                self.ns + "_jackal_kinova",
+                self.robot_name,
                 copy.deepcopy(state[RS_ROBOT_POSE : RS_ROBOT_POSE + 3]),
             )
             rospy.sleep(1)
@@ -505,9 +509,6 @@ class RosBridge_Fixed(RosBridge):
             # Set Gazebo Target Model state
             # self.set_model_state("Stop_sign", copy.deepcopy(state[0:3]))
 
-        rospy.loginfo("obstacle location set")
-
-        rospy.ServiceProxy("/gazebo/unpause_physics", Empty)
         self.reset_odom(0.0)
 
         # Set reset Event
